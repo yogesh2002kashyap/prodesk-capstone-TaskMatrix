@@ -58,10 +58,11 @@ The application features a live drag-and-drop Kanban board, real-time activity f
 ### P0 — Mandatory (Sprint Core)
 
 #### 1. Authentication & Role-Based Access Control
-- JWT-based register/login flow with bcrypt password hashing
-- Three roles: **Admin**, **Member**, **Viewer**
+- JWT-based register/login flow with bcrypt password hashing, JWT stored in httpOnly cookie
+- Two roles: **Admin** and **Member** (Viewer role deferred to P2 — see below)
 - Role guards on both frontend routes and backend API endpoints
 - Admin can invite members to a workspace, assign roles, and remove users
+- Member can create tasks, move cards, and edit/delete only their own or assigned tasks
 
 #### 2. Workspace & Project Management
 - Users can create and manage multiple **Workspaces**
@@ -119,6 +120,10 @@ The application features a live drag-and-drop Kanban board, real-time activity f
 - Drag tasks from the Backlog into a sprint
 - Velocity tracker showing estimated vs completed points per sprint
 
+#### 12. Viewer Role
+- Read-only third role — disables all write operations via a single middleware flag
+- Useful for clients, stakeholders, or managers who need visibility without edit access
+
 ---
 
 ## 🗂️ Repository Structure (Planned)
@@ -150,22 +155,50 @@ prodesk-capstone-TaskMatrix/
 
 ---
 
+## 🎨 UI/UX Wireframes
+
+Figma file (public): [TaskMatrix — Wireframes](https://www.figma.com/design/jtSOi7pQm2C6ee5cJAwWeW/prodesk-capstone-TaskMatrix?node-id=0-1&t=o86Ci2HJAgu9LxFp-1)
+
+### Desktop
+
+| Screen | Preview |
+|---|---|
+| Auth — Sign in / Create account | ![Auth Desktop](./docs/wireframes/auth-desktop.png) |
+| Kanban Board — main dashboard | ![Kanban Desktop](./docs/wireframes/kanban-desktop.png) |
+| Workload Heatmap — signature feature | ![Heatmap Desktop](./docs/wireframes/heatmap-desktop.png) |
+
+### Mobile
+
+| Screen | Preview |
+|---|---|
+| Auth — Mobile | ![Auth Mobile](./docs/wireframes/auth-mobile.png) |
+| Kanban Board — Mobile | ![Kanban Mobile](./docs/wireframes/kanban-mobile.png) |
+
+### Responsive considerations
+
+On mobile, the left sidebar collapses into a bottom navigation bar (Board, Heatmap, Alerts, Profile). The four Kanban columns become a horizontally scrollable tab strip — each tab retains its status dot, label, and task count, with the active column underlined. The topbar's "Add task" button becomes a circular floating action button for easier thumb access. The Auth screen requires no structural changes — the card simply becomes the full viewport width.
+
+---
+
+## 🗺️ Entity Relationship Diagram
+
+A User belongs to multiple Workspaces through WorkspaceMember (which carries the role). A Workspace contains multiple Projects, and each Project contains multiple Tasks. Each Task references an assignee and a createdBy user, plus the project it belongs to. Notifications reference a single recipient. This structure directly supports the RBAC model — `WorkspaceMember.role` is what backend middleware checks to determine Admin vs Member permissions per workspace.
+
+![TaskMatrix ERD](./docs/architecture/erd.png)
+
+---
+
 ## 🗃️ Data Models (High-Level)
 
 | Model | Key Fields |
 |---|---|
 | `User` | name, email, passwordHash, role, workspaces[] |
 | `Workspace` | name, owner, members[], projects[] |
+| `WorkspaceMember` | user (ref), workspace (ref), role |
 | `Project` | name, workspace, columns[], createdBy |
-| `Task` | title, description, status, priority, assignee, dueDate, attachments[], comments[], column |
+| `Task` | title, description, status, priority, assignee, dueDate, isAtRisk, attachments[], comments[], column |
 | `Comment` | body, author, task, createdAt |
 | `Notification` | recipient, message, type, read, createdAt |
-
----
-
-## Entity relationship diagram
-
-![TaskMatrix ERD](./docs/architecture/erd.png)
 
 ---
 
