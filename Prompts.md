@@ -1,6 +1,10 @@
 # Prompts.md — AI Architectural Query Log
 
-> This document logs the key prompts used with Claude (Anthropic) during the Capstone Planning Phase (Week 1) for TaskMatrix. Each entry includes the prompt intent, the actual query, and how the AI's output shaped a concrete decision in the project.
+> This document logs the key prompts used with Claude (Anthropic) during the Capstone Planning Phase (Week 1) and Auth Backend Sprint (Week 2) for TaskMatrix. Each entry includes the prompt intent, the actual query, and how the AI's output shaped a concrete decision in the project.
+
+---
+
+## SPRINT 1 — Capstone Blueprint (Week 1)
 
 ---
 
@@ -99,16 +103,103 @@
 
 ---
 
+## SPRINT 2 — Node.js Secure Authentication & JWT Integration (Week 2)
+
+---
+
+## 9. Auth Architecture — Understanding the Right Implementation Flow
+
+**Intent:** Before writing any code, I asked for the correct sequence of implementing authentication end-to-end so I understood the full flow rather than just copying code snippets.
+
+**Prompt used:**
+> "What is the right flow of implementing authentication."
+
+**Outcome:** The AI produced a complete flow broken into five distinct sequences — Register, Login, Every Subsequent Request, Page Load/Refresh, and Logout. This clarified the exact role of each piece: bcrypt handles password security at rest, JWT handles stateless identity on every request, localStorage handles persistence across page refreshes, and the Axios interceptor handles automatic token attachment without repeating code in every component. Understanding this flow upfront prevented misplacing logic (e.g. putting token verification on the client instead of the server).
+
+---
+
+## 10. Password Hashing — How bcrypt Works Internally
+
+**Intent:** The assignment brief stated that saving plain-text passwords is an automatic sprint failure. Before implementing, I asked how bcrypt actually works under the hood so I could explain it confidently and implement it correctly.
+
+**Prompt used:**
+> "How does inside the User.js the password hashed before saving, how bcrypt works."
+
+**Outcome:** The AI explained the full bcrypt lifecycle: salt generation (why salts exist and what the cost factor `10` means in terms of iterations and brute-force resistance), the one-way hashing process, how the salt is embedded inside the output hash string, and how `compareSync` re-hashes the login attempt rather than decrypting the stored hash. It also explained why `bcrypt.compareSync` is resistant to timing attacks. This understanding directly informed the decision to use a virtual setter on the Mongoose schema — storing `passwordHash` instead of `password` makes it explicit in the database that the field is never plain text.
+
+---
+
+## 11. JWT Verification — How authGuard Works on Every Request
+
+**Intent:** I needed to understand how the server verifies identity on every protected request without hitting the database each time, and how the middleware chain connects auth to route handlers.
+
+**Prompt used:**
+> "How does AuthGuard verify every request."
+
+**Outcome:** The AI walked through each step of the middleware: reading the `Authorization` header, extracting the token after the `Bearer ` prefix, and what `jwt.verify()` does simultaneously — signature verification (re-hashing header+payload with `JWT_SECRET` and comparing against the embedded signature), expiry check, and returning the decoded payload. It also explained why the same error message is returned for both "no token" and "invalid token" (to avoid leaking information), and how `req.user` makes identity available to every downstream route handler without a database lookup. This understanding directly informed how `roleGuard` was layered on top — it trusts `req.user.role` already populated by `authGuard`.
+
+---
+
+## 12. React Auth Architecture — AuthContext and ProtectedRoute
+
+**Intent:** I understood the backend auth flow but needed to understand how the React side manages auth state across the app, survives page refreshes, and gates protected pages.
+
+**Prompt used:**
+> "How does AuthContext and ProtectedRoute work."
+
+**Outcome:** The AI explained React Context as a global state container that eliminates prop drilling, and walked through exactly how `AuthProvider` initializes from `localStorage` (so users stay logged in on refresh), how `setUser()` propagates changes to every component using `useAuth()` simultaneously, and how `ProtectedRoute` acts as a gatekeeper by reading that state and either rendering children or redirecting to `/login`. The lazy initializer pattern (`useState(() => ...)`) was explained as running only once on mount rather than every render — a subtle but important performance detail. This confirmed the architecture choice of keeping `AuthProvider` inside `BrowserRouter` in `App.jsx` rather than wrapping it in `main.jsx`.
+
+---
+
+## 13. Axios Interceptors — How JWT Attaches to Every Request
+
+**Intent:** I wanted to understand the mechanics of how the JWT gets attached automatically without manually adding headers in every component, and how the 401 redirect works from outside React's component tree.
+
+**Prompt used:**
+> "How does the inside of api.js JWT attach to every outgoing request."
+
+**Outcome:** The AI explained `axios.create()` as a custom instance with pre-configured `baseURL`, and interceptors as checkpoints that run before every request and after every response. The request interceptor reads `tm_token` from localStorage and injects `Authorization: Bearer <token>` into `config.headers` before the request leaves the browser. The response interceptor catches `401` responses and uses `window.location.href` (rather than `useNavigate`) because `api.js` lives outside React's component tree and has no access to React Router context. This explained why the pattern is called a cross-cutting concern — one place handles what would otherwise be repeated boilerplate in every API call.
+
+---
+
+## 14. Debugging — CORS Policy Errors in Production
+
+**Intent:** After deploying to Render and Vercel, the frontend was blocked by CORS errors. I needed to diagnose and fix the issue from the error message alone.
+
+**Prompt used:**
+> *(Pasted the exact browser console error):*
+> "Access to XMLHttpRequest at 'https://prodesk-capstone-taskmatrix-dar4.onrender.com/auth/register' from origin 'https://prodesk-capstone-task-matrix-er83ostkp.vercel.app' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The 'Access-Control-Allow-Origin' header has a value 'https://prodesk-capstone-task-matrix-sigma.vercel.app/' that is not equal to the supplied origin."
+
+**Outcome:** The AI read the error precisely and identified two separate issues from the message alone: the `CLIENT_URL` environment variable on Render had a trailing slash (which causes an exact-string mismatch against the origin header), and it was pointing to an old Vercel deployment URL rather than the current one. It also identified a third issue — the `VITE_API_URL` on Vercel was missing the `/api` path prefix, causing requests to hit `/auth/register` instead of `/api/auth/register`. All three fixes were applied separately, and the AI explained why Vercel requires a manual redeploy after environment variable changes (unlike Render which auto-redeploys). This pattern — reading error messages precisely before proposing fixes — avoided shotgun debugging.
+
+---
+
+## 15. Security Hardening — JWT Secret and CORS Before Deployment
+
+**Intent:** Before deploying, I wanted to confirm what production-readiness changes were required for security, specifically around the JWT secret and CORS policy.
+
+**Prompts used:**
+> "Before deploying the server, do I need to change JWT secret."
+> "Do I need to change cors policy."
+
+**Outcome:** For JWT secret, the AI confirmed the placeholder value was publicly visible in the conversation history and generated a cryptographically random 64-byte hex string using Node's built-in `crypto` module — and explained that the secret should live only in Render's environment variables, never in committed code. For CORS, it updated the config from the open `cors()` call to a strict origin whitelist using `process.env.CLIENT_URL`, added `credentials: true` for future httpOnly cookie support, and updated the Axios `baseURL` to use `import.meta.env.VITE_API_URL` so the frontend URL is configurable per environment. It also noted the `VITE_` prefix requirement — Vite only exposes env variables with that prefix to the browser, a security rule that isn't optional.
+
+---
+
 ## Reflections on Prompt Engineering Approach
 
-A few patterns I tried to apply consistently across these prompts:
+A few patterns applied consistently across both sprints:
 
-**Context-loading before asking.** Before asking for recommendations (e.g. project selection, signature feature), I made sure relevant background — my prior sprints, my skill level — was already in the conversation, so outputs were tailored rather than generic.
+**Context-loading before asking.** Before asking for recommendations (e.g. project selection, signature feature, auth architecture), relevant background — prior sprints, skill level, current error messages — was already in the conversation so outputs were tailored rather than generic.
 
-**Asking "why" before "how."** For RBAC and scope decisions, I asked for explanations and trade-offs first, and only finalized the README after understanding the reasoning — this avoided baking in decisions I didn't actually understand.
+**Asking "why" before "how."** For RBAC, bcrypt, JWT verification, and AuthContext, explanations and trade-offs were requested first, and implementation only followed after understanding the reasoning. This avoided copying code without understanding it — which is especially important for security-critical auth code.
 
-**Requesting honesty over reassurance.** When I flagged the 4-week timeline concern, I phrased it as a genuine worry rather than asking "is this doable?" — which produced a realistic scope cut rather than false confidence.
+**Pasting exact error messages.** For all three production bugs (CORS, 404, wrong URL), the exact console error was pasted verbatim rather than paraphrasing it. This let the AI read specific values (the mismatched origin URLs, the missing `/api` prefix) directly from the error rather than guessing. Every bug was resolved in one round of fixes.
 
-**Format constraints for efficiency.** Once I understood the visual output style, I explicitly requested "text only, no visuals" for later Figma guides to conserve tokens — adapting my prompting based on what I'd already learned from earlier responses.
+**Requesting honesty over reassurance.** When the 4-week timeline concern was raised, it was framed as a genuine worry rather than "is this doable?" — which produced a realistic scope cut rather than false confidence.
 
-**Closing the loop with verification.** After each Figma build phase, I sent screenshots back and asked for review — this caught real issues (button text hidden behind a rectangle, inconsistent sentence case, misplaced badges) that pure instruction-following wouldn't have surfaced.
+**Format constraints for efficiency.** Text-only output was requested explicitly for Figma guides to conserve tokens — adapting prompting style based on what was already learned from earlier responses.
+
+**Closing the loop with verification.** After each Figma build phase and each deployment fix, screenshots and error messages were sent back for review — this caught real issues (layer-order bugs, mismatched URLs, missing env variable prefixes) that pure instruction-following wouldn't have surfaced.
+
+**Building understanding before the next feature.** Before starting each new piece of the auth system (bcrypt, JWT, AuthContext, interceptors), the internal mechanics were asked about first. This means the codebase can be explained and defended in a demo or code review — not just shipped.
