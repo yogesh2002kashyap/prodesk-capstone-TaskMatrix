@@ -7,7 +7,7 @@ const createTask = async (req, res) => {
         const {title, description, priority, column, assignee, dueDate, projectId} = req.body;
 
         const project = await Project.findById(projectId);
-        if(!project) { return res.status(404).jaon({message:'Project not found'});}
+        if(!project) { return res.status(404).json({message:'Project not found'});}
 
         const task = await Task.create({
             title,
@@ -48,11 +48,11 @@ const updateTask = async (req, res) => {
         const task = await Task.findById(req.params.id);
 
         if(!task) {
-            return res.status(404).jaon({message:'task not found'});
+            return res.status(404).json({message:'task not found'});
         }
 
         if(task.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({messsage:'Forbidden-you are not a task creator'});
+            return res.status(403).json({messsage:'Forbidden - not the task creator'});
         }
 
         const fields = ['title', 'description', 'priority', 'column', 'status', 'assignee', 'dueDate', 'isAtRisk'];

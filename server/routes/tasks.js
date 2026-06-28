@@ -5,7 +5,7 @@ const {createTask, getTasks, updateTask, deleteTask} = require('../controllers/t
 
 router.post('/', authGuard, createTask);
 router.get('/', authGuard, getTasks);
-router.put('/', authGuard, updateTask);
-router.delete('/', authGuard, deleteTask);
+router.put('/:id', authGuard, updateTask);
+router.delete('/:id', authGuard, deleteTask);
 
 module.exports = router;

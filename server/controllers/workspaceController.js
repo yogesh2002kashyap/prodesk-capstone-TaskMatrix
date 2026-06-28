@@ -42,7 +42,7 @@ const updateWorkspace = async (req,res) => {
             return res.status(404).json({message:'workspace not found'});
         }
 
-        if(workspace.owner.toString !== req.user.id) {
+        if(workspace.owner.toString() !== req.user.id) {
             return res.status(403).json({message:'Forbidden-Only workspace owner can update'});
         }
 

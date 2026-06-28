@@ -6,6 +6,6 @@ const {createProject, getProjects, updateProject, deleteProject} = require('../c
 router.post('/', authGuard, createProject);
 router.get('/', authGuard, getProjects);
 router.put('/:id', authGuard, updateProject);
-router.delete('/id', authGuard, deleteProject);
+router.delete('/:id', authGuard, deleteProject);
 
 module.exports = router;

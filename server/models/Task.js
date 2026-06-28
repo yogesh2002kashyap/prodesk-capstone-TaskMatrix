@@ -9,9 +9,9 @@ const taskSchema = mongoose.Schema(
         },
         description: {
             type: String,
-            default: ' ',
+            default: '',
         },
-        statue: {
+        status: {
             type: String,
             enum: ['backlog', 'in-progress', 'in-review', 'done'],
             default: 'backlog',
