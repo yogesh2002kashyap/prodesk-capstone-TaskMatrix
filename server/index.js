@@ -4,6 +4,9 @@ const cors = require('cors');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
+const workspaceRoutes = require('./routes/workspaces');
+const projectRoutes = require('./routes/projects');
+const taskRoutes = require('./routes/tasks');
 
 const app = express();
 
@@ -16,8 +19,8 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-
-const taskRoutes = require('./routes/tasks');
+app.use('/api/workspaces', workspaceRoutes);
+app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 
 // Health check

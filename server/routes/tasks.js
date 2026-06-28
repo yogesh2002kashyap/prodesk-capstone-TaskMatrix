@@ -1,16 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const authGuard = require('../middleware/authGuard');
-const roleGuard = require('../middleware/roleGuard');
+const {createTask, getTasks, updateTask, deleteTask} = require('../controllers/taskController');
 
-// Any authenticated user can GET tasks
-router.get('/', authGuard, (req, res) => {
-  res.json({ message: `Tasks fetched for user ${req.user.id}` });
-});
-
-// Only admins can DELETE tasks
-router.delete('/:id', authGuard, roleGuard('admin'), (req, res) => {
-  res.json({ message: `Task ${req.params.id} deleted by admin ${req.user.id}` });
-});
+router.post('/', authGuard, createTask);
+router.get('/', authGuard, getTasks);
+router.put('/', authGuard, updateTask);
+router.delete('/', authGuard, deleteTask);
 
 module.exports = router;
