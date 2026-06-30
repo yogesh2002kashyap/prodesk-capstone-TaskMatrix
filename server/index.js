@@ -20,11 +20,14 @@ app.use(express.json());
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
+const stripeRoutes = require('./routes/stripe');
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // Health check
 app.get('/', (req, res) => {

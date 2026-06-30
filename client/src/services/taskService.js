@@ -1,4 +1,3 @@
-import { data } from 'autoprefixer';
 import api from './api';
 
 export const createTask = (data) => api.post('/tasks',data);

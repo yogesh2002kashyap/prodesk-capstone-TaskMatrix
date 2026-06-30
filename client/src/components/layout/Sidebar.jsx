@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useState } from "react";
+import { createCheckoutSession } from '../../services/stripeService';
 
 
 export default function Sidebar(){
@@ -12,6 +13,7 @@ export default function Sidebar(){
     projects, selectedProject, setSelectedProject, addProject,
     } = useWorkspace();
 
+    const [upgrading, setUpgrading] = useState(false);
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
     const [newProjectName, setNewProjectName] = useState('');
     const [showWSInput, setShowWSInput] = useState(false);
@@ -37,6 +39,17 @@ export default function Sidebar(){
         setNewProjectName('');
         setShowProjInput(false);
     };
+
+    const handleUpgrade = async () => {
+        setUpgrading(true);
+        try{
+            const url = await createCheckoutSession();
+            window.location.href = url; 
+        }catch(err){
+            console.error('Checkout failed', err);
+            setUpgrading(false);
+        }
+    }
 
 
     return(
@@ -113,10 +126,20 @@ export default function Sidebar(){
                         <button type="submit" className="text-xs text-blue-800 font-medium">Add</button>
                     </form> 
                 ): (
-                    <button onClick={setShowWSInput(true)} className="text-left px-3 py-2 text-xs text-gray-400 hover:text-gray-800 transition">
+                    <button onClick={() => setShowWSInput(true)} className="text-left px-3 py-2 text-xs text-gray-400 hover:text-gray-800 transition">
                         + New workspace
                     </button>
                 )}
+            </div>
+            
+            <div className="px-3 pb-3">
+                <button
+                    onClick={handleUpgrade}
+                    disabled={upgrading}
+                    className="w-full py-2 bg-blue-50 text-blue-800 text-xs font-medium rounded-md hover:bg-blue-100 transition disabled:opacity-50 disabled:cursor-not-allowed border border-blue-100"
+                >
+                    {upgrading ? 'Redirecting...' : 'Upgrade to Pro'}
+                </button>
             </div>
 
             <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-2">

@@ -5,12 +5,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthPage from './pages/AuthPage';
 import KanbanPage from './pages/KanbanPage';
 import HeatmapPage from './pages/HeatmapPage';
+import SuccessPage from './pages/SuccessPage';
 
 function App() {
   return (
     <AuthProvider>
       <WorkspaceProvider>
         <Routes>
+          <Route path="/success" element={<SuccessPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route
             path="/board"
