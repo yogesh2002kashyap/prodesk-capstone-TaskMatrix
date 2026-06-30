@@ -45,7 +45,7 @@ export default function AuthPage(){
 
   try{
     if(tab === 'register') {
-      const res = await api.post('/api/register', {
+      const res = await api.post('/auth/register', {
         name:form.name,
         email:form.email,
         password:form.password,
@@ -93,7 +93,7 @@ export default function AuthPage(){
         <div className="mb-4 px-3 py-2 bg-red-50 border border-red-400 rounded-md text-xs text-red-800">{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className="sapce-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {tab === 'register' && (  
           <div>
             <label className="block text-xs text-gray-400 mb-1">
@@ -119,6 +119,7 @@ export default function AuthPage(){
             </label>
             <div className="relative">
               <input type={showPassword?'text':'password'} name="password" required 
+              value={form.password}
               onChange={handleChange}
               placeholder={tab === 'register' ? 'Min. 8 characters' : '••••••••'}
               className="w-full border border-gray-100 rounded-md px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"

@@ -22,7 +22,7 @@ export default function TaskModal({onClose}){
             await addTask(form);
             onClose();
         }catch(err){
-            console.err('Failed to create task', err);
+            console.error('Failed to create task', err);
         }finally{
             setLoading(false);
         }

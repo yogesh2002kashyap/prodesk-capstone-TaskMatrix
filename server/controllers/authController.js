@@ -1,8 +1,11 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-// Helper — generate a signed JWT for a user
+
 const generateToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is missing');
+  }
   return jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET,
@@ -23,6 +26,14 @@ const setCookieToken = (res, token) => {
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    if (!name || !name.trim() || !email || !email.trim() || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -48,20 +59,24 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email
+    if (!email || !email.trim() || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Compare submitted password against stored hash
+    
     const isMatch = user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const token = generateToken(user);
-    setCookieToken(res,token);
+    setCookieToken(res, token);
     res.status(200).json({
       token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
@@ -74,11 +89,11 @@ const login = async (req, res) => {
 //POST /api/auth/logout 
 const logout = (req, res) => {
   res.clearCookie('tm_token', {
-    httpOnly:true,
+    httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite:'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
   });
-  res.status(200).json({message:'Logged out'})
+  res.status(200).json({ message: 'Logged out' });
 };
 
 module.exports = { register, login, logout };

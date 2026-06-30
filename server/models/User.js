@@ -14,10 +14,14 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        'Please fill a valid email address',
+      ],
     },
     passwordHash: {
       type: String,
-      required: true,
+      required: [true, 'Password is required'],
     },
     role: {
       type: String,
@@ -28,10 +32,12 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Never store plain-text password — this virtual setter hashes it
+// Never store plain-text password 
 userSchema.virtual('password').set(function (plainText) {
-  const salt = bcrypt.genSaltSync(10);
-  this.passwordHash = bcrypt.hashSync(plainText, salt);
+  if (plainText) {
+    const salt = bcrypt.genSaltSync(10);
+    this.passwordHash = bcrypt.hashSync(plainText, salt);
+  }
 });
 
 // Instance method to compare a login attempt against the stored hash

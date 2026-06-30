@@ -23,7 +23,7 @@ export default function SuccessPage() {
                 const data = await getCheckoutSession(sessionId);
                 setSession(data);
             }catch(err){
-                setError('Could not verify payment', err.message);
+                setError('Could not verify payment. Please contact support.');
             }finally{
                 setLoading(false);
             }
@@ -44,7 +44,10 @@ export default function SuccessPage() {
             <div className='min-h-screen flex items-center justify-center bg-brand-bg'>
                 <div className='bg-white rounded-md shadow-sm p-8 text-center max-w-sm w-full'>
                     <p className='text-sm text-red-800 mb-4'>{error}</p>
-                    <button>
+                    <button
+                      onClick={() => navigate('/board')}
+                      className="px-4 py-2 bg-brand-dark text-gray-50 text-xs rounded-md hover:bg-gray-900 transition"
+                    >
                         Back to board
                     </button>
                 </div>

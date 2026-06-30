@@ -6,10 +6,10 @@ export default function TaskCard({task, column, allColumns, onMove, onDelete}){
     return (
         <div className={`bg-white rounded-md border border-gray-100 p-3 group ${
             column === 'In Progress' ?
-            'border-1-2 border-1-col-inprogress rounded-1-none': ''
+            'border-l-2 border-l-col-inprogress rounded-l-none': ''
         }`}>
             <p className='text-xs font-medium text-gray-900 mb-2 leading-snug'> {task.title}</p>
-            <div>
+            <div className='flex items-center gap-2'>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[task.priority]}`}>{task.priority}</span>
                 <div className='ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition'>
                     {colIndex > 0 && (<button onClick={() => onMove(task._id, allColumns[colIndex - 1])}

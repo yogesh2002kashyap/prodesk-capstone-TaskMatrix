@@ -23,7 +23,7 @@ const taskSchema = mongoose.Schema(
         },
         column: {
             type: String,
-            default: 'backlog',
+            default: 'Backlog',
         },
         assignee: {
             type: mongoose.Schema.Types.ObjectId,
@@ -51,5 +51,8 @@ const taskSchema = mongoose.Schema(
     },
     { timestamps: true }
 );
+
+taskSchema.index({ project: 1 });
+taskSchema.index({ createdBy: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);

@@ -4,7 +4,7 @@ const authGuard = require('../middleware/authGuard');
 const { createCheckoutSession, getSession } = require('../controllers/stripeController');
 
 
-router.post('/create-check-session', authGuard, createCheckoutSession);
-router.get('/session/:sesionId', getSession);
+router.post('/create-checkout-session', authGuard, createCheckoutSession);
+router.get('/session/:sessionId', getSession);
 
 module.exports = router;
