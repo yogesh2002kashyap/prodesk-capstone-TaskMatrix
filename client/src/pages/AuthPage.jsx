@@ -7,7 +7,7 @@ import api from '../services/api';
 
 export default function AuthPage(){
   const navigate = useNavigate();
-  const {login} = useAuth();
+  const {setUser,login} = useAuth();
 
   const [tab, setTab] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
@@ -50,12 +50,13 @@ export default function AuthPage(){
         email:form.email,
         password:form.password,
       });
-      localStorage.setItem('tm_token', res.data.token);
+
       localStorage.setItem('tm_user', JSON.stringify(res.data.user));
+      setUser(res.data.user);
+      navigate('/board');
     }else {
       await login(form.email, form.password);
     }
-    navigate('/board');
   }catch(err) {
     setError(err.response?.data?.message || 'Something went wrong');
   }finally{

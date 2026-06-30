@@ -12,31 +12,22 @@ export const AuthProvider = ({ children }) => {
 
   const navigate = useNavigate();
 
-  const register = async (name, email, password) => {
-    const res = await api.post('/auth/register', { name, email, password });
-    localStorage.setItem('tm_token', res.data.token);
-    localStorage.setItem('tm_user', JSON.stringify(res.data.user));
-    setUser(res.data.user);
-    navigate('/dashboard');
-  };
-
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
-    localStorage.setItem('tm_token', res.data.token);
     localStorage.setItem('tm_user', JSON.stringify(res.data.user));
     setUser(res.data.user);
-    navigate('/dashboard');
+    navigate('/board');
   };
 
-  const logout = () => {
-    localStorage.removeItem('tm_token');
+  const logout = async () => {
+    await api.post('/auth/logout')
     localStorage.removeItem('tm_user');
     setUser(null);
-    navigate('/login');
+    navigate('/auth');
   };
 
   return (
-    <AuthContext.Provider value={{ user, register, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
