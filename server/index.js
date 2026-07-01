@@ -8,7 +8,7 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 
 
-const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'PORT', 'CLIENT_URL'];
+const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'PORT', 'CLIENT_URL', 'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID'];
 if (process.env.NODE_ENV !== 'test') {
   const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
   if (missing.length) {

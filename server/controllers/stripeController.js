@@ -1,4 +1,4 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'dummy_key');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 //POST /api/stripe/create-checkout-session
 const createCheckoutSession = async (req, res) => {
