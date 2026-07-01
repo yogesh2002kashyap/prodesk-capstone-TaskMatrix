@@ -19,6 +19,8 @@ export default function Sidebar(){
     const [showWSInput, setShowWSInput] = useState(false);
     const [showProjInput, setShowProjInput] = useState(false);
 
+    const isPro = localStorage.getItem('tm_pro') === 'true';
+
     const navItems = [
         {label:'Board', path:'/board'},
         {label: 'Heatmap', path:'/heatmap'},
@@ -133,13 +135,19 @@ export default function Sidebar(){
             </div>
             
             <div className="px-3 pb-3">
+              {isPro ? (
+                <div className="w-full py-2 bg-green-50 text-green-800 text-xs font-medium rounded-md border border-green-50 text-center">
+                  ⚡ Pro plan active
+                </div>
+              ) : (
                 <button
-                    onClick={handleUpgrade}
-                    disabled={upgrading}
-                    className="w-full py-2 bg-blue-50 text-blue-800 text-xs font-medium rounded-md hover:bg-blue-100 transition disabled:opacity-50 disabled:cursor-not-allowed border border-blue-100"
+                  onClick={handleUpgrade}
+                  disabled={upgrading}
+                  className="w-full py-2 bg-blue-50 text-blue-800 text-xs font-medium rounded-md hover:bg-blue-100 transition disabled:opacity-50 disabled:cursor-not-allowed border border-blue-100"
                 >
-                    {upgrading ? 'Redirecting...' : 'Upgrade to Pro'}
+                  {upgrading ? 'Redirecting...' : '⚡ Upgrade to Pro'}
                 </button>
+              )}
             </div>
 
             <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-2">

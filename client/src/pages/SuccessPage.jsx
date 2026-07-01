@@ -22,6 +22,7 @@ export default function SuccessPage() {
             try{
                 const data = await getCheckoutSession(sessionId);
                 setSession(data);
+                localStorage.setItem('tm_pro', 'true');
             }catch(err){
                 setError('Could not verify payment. Please contact support.');
             }finally{
