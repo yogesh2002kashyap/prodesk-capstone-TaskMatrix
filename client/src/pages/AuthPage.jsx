@@ -37,7 +37,7 @@ export default function AuthPage(){
     setError('');
 
   if(tab === 'register' && form.password.length < 8){
-    setError('Password must br atleat 8 characters');
+    setError('Password must be atleat 8 characters');
     return;
   };
   
