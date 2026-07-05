@@ -203,3 +203,97 @@ A few patterns applied consistently across both sprints:
 **Closing the loop with verification.** After each Figma build phase and each deployment fix, screenshots and error messages were sent back for review — this caught real issues (layer-order bugs, mismatched URLs, missing env variable prefixes) that pure instruction-following wouldn't have surfaced.
 
 **Building understanding before the next feature.** Before starting each new piece of the auth system (bcrypt, JWT, AuthContext, interceptors), the internal mechanics were asked about first. This means the codebase can be explained and defended in a demo or code review — not just shipped.
+
+---
+
+## SPRINT 3 — REST API CRUD Finalisation & Stripe Monetisation (Week 3)
+
+---
+
+## 16. Full-Stack CRUD Architecture — Planning Before Coding
+
+**Intent:** Before writing any controller or route, I asked for a complete build order and architecture plan covering all three resources (Workspace, Project, Task) so dependencies were respected and nothing needed retrofitting.
+
+**Prompt used:**
+> "Which resource should we build CRUD for first?"
+
+**Outcome:** The AI identified the dependency chain (Workspace → Project → Task) and produced the complete backend in the correct order — models, controllers, routes, and index.js registration — before any frontend work began. Data ownership validation (`task.createdBy.toString() !== req.user.id` → 403) was baked into every controller from the start rather than added as an afterthought. This produced a clean E2E test report with all 9 steps passing, including the cross-user 403 ownership test.
+
+---
+
+## 17. Frontend Architecture Correction — Component-Based SPA Shell
+
+**Intent:** The first frontend implementation collapsed everything into two page-level components. I flagged this was wrong based on the actual Figma design which shows a persistent sidebar and topbar.
+
+**Prompt used:**
+> "The actual kanban looks like this: sidebar panel, top-left navbar, main navbar, priority columns — which means so many components, but your description compiles everything into just two pages."
+
+**Outcome:** The AI fully re-architected the frontend into the correct structure: persistent Sidebar and Topbar layout components, decomposed board components (KanbanBoard, KanbanColumn, TaskCard), a shared WorkspaceContext replacing prop drilling, and three routes only (/auth, /board, /heatmap) instead of per-resource pages. WorkspaceContext became the single source of truth for workspace/project/task state — any component reads from it via useWorkspace() without prop chains.
+
+---
+
+## 18. Colour Token System — Single Source of Truth
+
+**Intent:** Raw hex values were scattered across JSX files. I asked for a systematic fix before writing more components.
+
+**Prompt used:**
+> "Instead of using raw hex values anywhere for colours, why can't we just define a colour palette as a single source of truth."
+
+**Outcome:** The entire colour system was moved into tailwind.config.js as named semantic tokens (brand-dark, brand-bg, blue-50, col-inprogress, heat-0 through heat-4, etc.). A priorityStyles.js utility file was created for reusable badge and column dot class mappings. Every component was updated to reference token names instead of hex values — a single config change now updates the whole UI.
+
+---
+
+## 19. Agentic AI Bug Fix — Targeted Prompt Engineering
+
+**Intent:** A manual code review identified 6 specific bugs across 6 files. Rather than fixing them myself or asking the AI to fix them conversationally, I wrote a structured prompt for an agentic AI tool to apply the fixes precisely without touching unrelated code.
+
+**Prompt used:**
+> Full agentic prompt specifying: exact file paths, exact broken code snippets, exact fixed code, fix constraints, and a post-fix verification checklist.
+
+**Outcome:** The prompt prevented the most common agentic failure mode — over-fixing. By specifying "fix ONLY the issues listed" and including before/after diffs for each bug, the agent applied targeted changes without refactoring working code. Key bugs caught: KanbanColumn broken JSX nesting (everything rendered inside an 8px dot div), TaskCard invalid Tailwind classes (border-1-2 instead of border-l-2), AuthPage wrong API endpoint (/api/register double-prefixed), Sidebar setShowWSInput(true) called during render instead of on click.
+
+---
+
+## 20. Service Layer Debugging — Syntax and Return Value Bugs
+
+**Intent:** The app wasn't running after the component refactor. I uploaded all service files for a rigorous review.
+
+**Prompt used:**
+> "Rigorously read all service files. Do you find any flaws because the app is not running?"
+
+**Outcome:** Three bugs were found: a syntax error in taskService.js (= instead of => in an arrow function) which caused a Vite build failure blocking the entire app; stripeService.js returning res.data.url from getCheckoutSession instead of res.data causing the success page to always render blank; and a stray import { data } from 'autoprefixer' in projectService.js importing a PostCSS plugin into a JavaScript API file. The syntax error was the root cause of the app not starting — a single missing > character.
+
+---
+
+## 21. Stripe Integration — End-to-End Flow and Debugging
+
+**Intent:** The Stripe checkout button returned a 500. I needed to diagnose and fix the integration across the full stack.
+
+**Prompts used (sequence):**
+> "Still the same issue — network response is: You must provide at least one recurring price in subscription mode when using prices."
+> "I guess stripe npm package is not installed."
+> "First bugs found: REQUIRED_ENV array has no Stripe secret key and the dummy_key fallback is removed."
+
+**Outcome:** Three separate Stripe bugs were resolved across three rounds: (1) the price created in Stripe was one-time instead of recurring — fixed by creating a new recurring monthly price and updating STRIPE_PRICE_ID on Render; (2) the stripe npm package was missing from server/package.json — added and committed so Render installs it on deploy; (3) STRIPE_SECRET_KEY and STRIPE_PRICE_ID were missing from the REQUIRED_ENV startup validation array, and a || 'dummy_key' fallback masked missing env vars silently — both removed so the server fails fast with a clear error if keys are absent.
+
+---
+
+## 22. Production Debugging — Vercel Domain and CORS
+
+**Intent:** After deployment, the stable domain URL returned 404 while the per-commit deployment URL worked. The CORS policy on Render pointed to the stable domain which wasn't loading — creating a catch-22.
+
+**Prompts used:**
+> "Why does every new commit create a new deployment link and how can it be fixed?"
+> "The domain URL works but it keeps on continuously reloading."
+
+**Outcome:** Two separate issues were identified and fixed: (1) the Vercel domain alias was detached from the Production environment — resolved by removing and re-adding the domain so it reattached to the latest production deployment; (2) the missing vercel.json SPA rewrite config caused Vercel to return 404 on any direct URL visit since no physical file exists at /auth or /board — fixed by adding { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }. The continuous reload was caused by the api.js 401 interceptor firing on every load because the httpOnly cookie wasn't being sent — confirmed withCredentials: true was on axios.create() and credentials: true was on the Render CORS config.
+
+---
+
+## Reflections — Sprint 3 additions
+
+**Writing agentic prompts as specifications, not requests.** The bug-fix prompts written for agentic AI included exact file paths, exact broken code, exact fixed code, and explicit constraints ("do not touch anything outside these files"). This produced precise targeted fixes without collateral changes — the same principle as writing a good pull request description.
+
+**Separating symptoms from causes.** Multiple times in this sprint, a surface symptom (500 error, app not loading, infinite reload) masked a different root cause (missing npm package, syntax error in an unrelated file, missing vercel.json). The consistent pattern was: read the exact error message → identify the layer it came from (build, runtime, network, browser) → fix that specific layer before assuming the problem is elsewhere.
+
+**Testing environment parity.** Several bugs only appeared in production (Render env vars missing, Vercel domain alias detached, CORS credential mismatch) because local dev uses .env files that don't exist on the server. The fix was treating Render's Environment tab as the equivalent of .env — every variable that exists locally must also exist there explicitly.
