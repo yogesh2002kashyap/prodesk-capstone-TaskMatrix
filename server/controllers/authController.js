@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const { sendSuccess, sendError } = require('../utils/apiError');
 
 
 const generateToken = (user) => {
@@ -23,21 +24,21 @@ const setCookieToken = (res, token) => {
 };
 
 // POST /api/auth/register
-const register = async (req, res) => {
+const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
     if (!name || !name.trim() || !email || !email.trim() || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required' });
+      return sendError(res, 400, 'Name, email, and password are required', errors);
     }
 
     if (password.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+      return sendError(res, 400, 'Password must be at least 8 characters long', errors);
     }
 
     const existing = await User.findOne({ email });
     if (existing) {
-      return res.status(400).json({ message: 'Email already registered' });
+      return sendError(res, 400, 'Email already registered', errors);
     }
 
     const user = new User({ name, email });
@@ -46,43 +47,41 @@ const register = async (req, res) => {
 
     const token = generateToken(user);
     setCookieToken(res, token);
-    res.status(201).json({
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
-    });
+    return sendSuccess(res, 200, {user: { id: user._id, name: user.name, email: user.email, role: user.role }}, 'Registered successfully');
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 };
 
 // POST /api/auth/login
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !email.trim() || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+      return sendError(res, 400, 'Email and password are required', errors);
     }
 
     
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return sendError(res, 401,'Invalid email or password', errors);
     }
 
     
     const isMatch = user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return sendError(res, 401,'Invalid email or password', errors);
     }
 
     const token = generateToken(user);
     setCookieToken(res, token);
-    res.status(200).json({
+    return sendSuccess(res, 200, {
       token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
-    });
+    }, 'Login successfully' );
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    next(err);
   }
 };
 
@@ -93,7 +92,7 @@ const logout = (req, res) => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
   });
-  res.status(200).json({ message: 'Logged out' });
+  sendSuccess(res, 200, 'Logged out');
 };
 
 module.exports = { register, login, logout };

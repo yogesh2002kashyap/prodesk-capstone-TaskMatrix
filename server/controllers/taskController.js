@@ -1,16 +1,17 @@
 const Task = require('../models/Task');
 const Project = require('../models/Project');
+const { sendSuccess, sendError } = require('../utils/apiError');
 
 // POST /api/tasks - create a task inside a project
-const createTask = async (req, res) => {
+const createTask = async (req, res, next) => {
     try{
         const {title, description, priority, column, assignee, dueDate, projectId} = req.body;
 
         if (!title || !title.trim()) {
-            return res.status(400).json({message: 'Task title is required'});
+            return sendError(res, 400, 'Task title is required', errors);
         }
         if (!projectId) {
-            return res.status(400).json({message: 'projectId is required'});
+            return sendError(res, 400, 'Project ID is required', errors);
         }
 
         const project = await Project.findById(projectId);
@@ -19,9 +20,7 @@ const createTask = async (req, res) => {
         // Validate column against project's columns list
         const targetColumn = column || 'Backlog';
         if (!project.columns.includes(targetColumn)) {
-            return res.status(400).json({
-                message: `Invalid column. Must be one of: ${project.columns.join(', ')}`
-            });
+            return sendError(res, 400, `Invalid column. Must be one of: ${project.columns.join(', ')}`, errors);
         }
 
         const task = await Task.create({
@@ -35,19 +34,18 @@ const createTask = async (req, res) => {
             createdBy: req.user.id,
         });
 
-        res.status(201).json(task);
+        return sendSuccess(res, 201, task, 'Success');
     }catch(err){
-        res.status(500).json({message:'server error', error: err.message});
-    }
+        next(err);}
 };
 
 // GET /api/tasks?projectId=xxx - get all tasks for a project
-const getTasks = async (req, res) => {
+const getTasks = async (req, res, next) => {
     try{
         const {projectId} = req.query;
 
         if (!projectId) {
-            return res.status(400).json({message: 'projectId query param is required'});
+            return sendError(res, 400, 'projectId query param is required', errors);
         }
 
         const tasks = await Task.find({project:projectId})
@@ -55,32 +53,30 @@ const getTasks = async (req, res) => {
         .populate('createdBy', 'name email')
         .sort({createdAt: -1});
 
-        res.status(200).json(tasks);
+        return sendSuccess(res, 200, tasks, 'Success');
     }catch(err) {
-        res.status(500).json({message:'server error', error: err.message});
+        next(err);
     }
 };
 
 // PUT /api/tasks/:id - update a task
-const updateTask = async (req, res) => {
+const updateTask = async (req, res, next) => {
     try{
         const task = await Task.findById(req.params.id);
 
         if(!task) {
-            return res.status(404).json({message:'task not found'});
+            return sendError(res, 404, 'Task not found', errors);
         }
 
         if(task.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({message:'Forbidden - not the task creator'});
+            return sendError(res, 403, 'Forbidden - not the task creator', errors);
         }
 
         
         if (req.body.column !== undefined) {
             const project = await Project.findById(task.project);
             if (project && !project.columns.includes(req.body.column)) {
-                return res.status(400).json({
-                    message: `Invalid column. Must be one of: ${project.columns.join(', ')}`
-                });
+                return sendError(res, 400, `Invalid column. Must be one of: ${project.columns.join(', ')}`, errors);
             }
         }
 
@@ -91,29 +87,29 @@ const updateTask = async (req, res) => {
 
         await task.save();
 
-        res.status(200).json(task);
+        return sendSuccess(res, 200, task, 'Success');
     }catch(err) {
-        res.status(500).json({message:'server error', error:err.message});
+        next(err);
     }
 };
 
 // DELETE /api/tasks/:id - delete a task by id
-const deleteTask = async (req, res) => {
+const deleteTask = async (req, res, next) => {
     try{
         const task = await Task.findById(req.params.id);
 
         if(!task) {
-            return res.status(404).json({message:'Task not found'});
+            return sendError(res, 404, 'Task not found', errors);
         }
 
         if(task.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({message:'Forbidden - you are not the task creator'});
+            return sendError(res, 403, 'Forbidden - you are not the task creator', errors);
         }
 
         await task.deleteOne();
-        res.status(200).json({message:'Task deleted successfully'});
+        return sendSuccess(res, 200, 'task deleted successfully');
     }catch(err) {
-        res.status(500).json({message:'server error', error:err.message});
+        next(err);
     }
 };
 

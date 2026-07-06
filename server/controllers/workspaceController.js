@@ -1,14 +1,15 @@
 const Workspace = require('../models/Workspace');
 const Project = require('../models/Project');
 const Task = require('../models/Task');
+const { sendSuccess, sendError } = require('../utils/apiError');
 
 // POST /api/workspaces - create a new workspace 
-const createWorkspace = async (req, res) => {
+const createWorkspace = async (req, res, next) => {
     try {
         const { name } = req.body;
 
         if (!name || !name.trim()) {
-            return res.status(400).json({ message: 'Workspace name is required' });
+            return sendError(res, 400, 'Workspace name is required', errors);
         }
 
         const workspace = await Workspace.create(
@@ -19,65 +20,64 @@ const createWorkspace = async (req, res) => {
             }
         );
 
-        res.status(201).json(workspace);
+        return sendSuccess(res, 201, workspace, 'Success');
 
     } catch(err) {
-        res.status(500).json({ message: 'server error', error: err.message});
+        next(err);
     }
 };
 
 //GET /api/workspaces - get all workspace
-const getWorkspaces = async (req, res) => {
+const getWorkspaces = async (req, res,next) => {
     try {
         const workspaces = await Workspace.find({
             'members.user': req.user.id,
         }).populate('owner', 'name email');
 
-        res.status(200).json(workspaces);
+        return sendSuccess(res, 200, workspaces, 'Success');
     } catch(err) {
-        res.status(500).json({message: 'server error', error:err.message});
+        next(err);
     }
 };
 
 // PUT /api/workspaces/:id - updade workspace name
-const updateWorkspace = async (req,res) => {
+const updateWorkspace = async (req,res,next) => {
     try {
         const { name } = req.body;
 
         if (!name || !name.trim()) {
-            return res.status(400).json({ message: 'Workspace name is required' });
+            return sendError(res, 400, 'Workspace name is required', errors);
         }
 
         const workspace = await Workspace.findById(req.params.id);
 
         if(!workspace) {
-            return res.status(404).json({message:'workspace not found'});
+            return sendError(res, 404, 'workspace not found', errors);
         }
 
         if(workspace.owner.toString() !== req.user.id) {
-            return res.status(403).json({message:'Forbidden-Only workspace owner can update'});
+            return sendError(res, 403, 'Forbidden-Only workspace owner can update', errors);
         }
 
         workspace.name = name.trim();
         await workspace.save();
         
-        res.status(200).json(workspace);
+        return sendSuccess(res, 200, workspace, 'Success');
     } catch(err) {
-        res.status(500).json({message: 'server error', error: err.message});
-    }
+        next(err);}
 };
 
 //DELETE /api/workspaces/:id - delete workspace by id 
-const deleteWorkspace = async (req, res) => {
+const deleteWorkspace = async (req, res, next) => {
     try {
         const workspace = await Workspace.findById(req.params.id);
 
         if(!workspace) {
-            return res.status(404).json({message:'workspace not found'});
+            return sendError(res, 404, 'Workspace not found', errors);
         }
 
         if(workspace.owner.toString() !== req.user.id) {
-            return res.status(403).json({message:'Forbidden:only owner can delete'});
+            return sendError(res, 403, 'Forbidden:only owner can delete', errors);
         }
 
         const projects = await Project.find({ workspace: workspace._id });
@@ -87,10 +87,9 @@ const deleteWorkspace = async (req, res) => {
 
         await workspace.deleteOne();
 
-        res.status(200).json({message:'workspace has been deleted successfully'});
+        return sendSuccess(res, 200, 'workspace has been deleted successfully');
     } catch(err) {
-        res.status(500).json({message:'server error', error:err.message});
-    }
+        next(err);}
 };
 
 module.exports = { createWorkspace, getWorkspaces, updateWorkspace, deleteWorkspace};
