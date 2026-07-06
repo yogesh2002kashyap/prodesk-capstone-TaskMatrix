@@ -1,6 +1,6 @@
 const { sendError } = require('../utils/apiError');
 
-const errorhandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, next) => {
 
     if(err.name === 'ZodError') {
         return sendError(res, 400, 'Validation failed', err.errors.map(e => ({
