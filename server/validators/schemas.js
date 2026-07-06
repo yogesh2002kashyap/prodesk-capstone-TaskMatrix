@@ -48,6 +48,10 @@ const aiSuggestSchema = z.object({
     taskTitle: z.string().min(3, 'Task title must be at least 3 characters').max(200).trim(),
 });
 
+const sessionParamSchema = z.object({
+    sessionId: z.string().min(10, 'Invalid session ID format'),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -57,4 +61,5 @@ module.exports = {
   createTaskSchema,
   updateTaskSchema,
   aiSuggestSchema,
+  sessionParamSchema,
 };
