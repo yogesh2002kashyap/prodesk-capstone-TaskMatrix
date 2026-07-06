@@ -1,126 +1,172 @@
-import {  createContext, useContext, useEffect, useState } from "react";
-import { createWorkspace, getWorkspaces } from "../services/workspaceService";
-import { createProject, getProjects } from "../services/projectService";
-import { createTask, deleteTask, getTasks, updateTask } from "../services/taskService";
-
+import { createContext, useContext, useEffect, useState } from 'react';
+import { createWorkspace, getWorkspaces } from '../services/workspaceService';
+import { createProject, getProjects } from '../services/projectService';
+import {
+  createTask,
+  deleteTask,
+  getTasks,
+  updateTask,
+} from '../services/taskService';
 
 const WorkspaceContext = createContext();
 
-export const WorkspaceProvider = ({children}) => {
-    const [workspaces, setWorkspaces] = useState([]);
-    const [selectedWorkspace, setSelectedWorksapce] = useState(null);
-    const [projects, setProjects] = useState([]);
-    const [selectedProject, setSelectedProject] = useState(null);
-    const [tasks, setTasks] = useState([]);
-    const [loading,setLoading] = useState(true);
+export const WorkspaceProvider = ({ children }) => {
+  const [workspaces, setWorkspaces] = useState([]);
+  const [selectedWorkspace, setSelectedWorkspace] = useState(null);
 
-    // Workspaces loading
-    useEffect(() => {
-      const fetch = async () => {
-        try{
-            const res = await getWorkspaces();
-            setWorkspaces(res.data);
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
 
-            if(res.data.length > 0){
-                setSelectedWorksapce(res.data[0]);
-            }
-        }catch(e){
-            console.error(e);
-        }finally{
-            setLoading(false);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load workspaces
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const res = await getWorkspaces();
+        const workspaces = res.data.data;
+
+        setWorkspaces(workspaces);
+
+        if (workspaces.length > 0) {
+          setSelectedWorkspace(workspaces[0]);
         }
-      };
-      fetch();
-    }, []);
-
-    // Projects loading
-    useEffect(() => {
-        if(!selectedWorkspace) return;
-        const fetch = async () => {
-            try{
-                const res = await getProjects(selectedWorkspace._id);
-                setProjects(res.data);
-                if(res.data.length > 0) {
-                    setSelectedProject(res.data[0]);
-                }
-                else{
-                    setSelectedProject(null);
-                }
-            }catch(e) {
-                console.error(e);
-            }
-        };
-        fetch();
-    }, [selectedWorkspace]);
-    
-    // Tasks loading
-    useEffect(() => {
-        if(!selectedProject) return;
-        const fetch = async () => {
-            try {
-                const res = await getTasks(selectedProject._id)
-                setTasks(res.data);
-            }catch(e) {
-                console.error(e);
-            }
-        };
-        fetch();
-    }, [selectedProject]);
-
-    // add task
-    const addTask = async (data) => {
-        const res = await createTask({...data, projectId: selectedProject._id});
-        setTasks((prev) => [...prev, res.data]);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    //move task
-    const moveTask = async (taskId, newColumn) => {
-        setTasks((prev) => 
-        prev.map((t) => (t._id === taskId ? {...t, column:newColumn}:t))
-        );
-        try{
-            await updateTask(taskId, {column:newColumn});
-        }catch(error){
-            const res = await getTasks(selectedProject._id);
-            setTasks(res.data);
+    fetch();
+  }, []);
+
+  // Load projects
+  useEffect(() => {
+    if (!selectedWorkspace) {
+      setProjects([]);
+      setSelectedProject(null);
+      setTasks([]);
+      return;
+    }
+
+    const fetch = async () => {
+      try {
+        const res = await getProjects(selectedWorkspace._id);
+        const projects = res.data.data;
+
+        setProjects(projects);
+
+        if (projects.length > 0) {
+          setSelectedProject(projects[0]);
+        } else {
+          setSelectedProject(null);
+          setTasks([]);
         }
+      } catch (err) {
+        console.error(err);
+      }
     };
 
-    const removeTask = async (taskId) => {
-        setTasks((prev) => prev.filter((t) => t._id !== taskId));
-        try{
-            await deleteTask(taskId);
-        }catch(e){
-            const res = await getTasks(selectedProject._id);
-            setTasks(res.data);
-        }
+    fetch();
+  }, [selectedWorkspace]);
+
+  // Load tasks
+  useEffect(() => {
+    if (!selectedProject) return;
+
+    const fetch = async () => {
+      try {
+        const res = await getTasks(selectedProject._id);
+        setTasks(res.data.data);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
-    // new workspace
-    const addWorkspace = async (name) => {
-        const res = await createWorkspace({name});
-        setWorkspaces((prev) => [...prev,res.data]);
-        setSelectedWorksapce(res.data);
-    };
+    fetch();
+  }, [selectedProject]);
 
-    // add project
-    const addProject = async (name) => {
-        const res = await createProject({name, workspaceId:selectedWorkspace._id});
-        setProjects((prev) => [...prev, res.data]);
-        setSelectedProject(res.data);
-    };
+  // Add task
+  const addTask = async (data) => {
+    const res = await createTask({
+      ...data,
+      projectId: selectedProject._id,
+    });
 
-    return(
-        <WorkspaceContext.Provider
-        value={{workspaces,selectedWorkspace,
-         setSelectedWorksapce,projects,
-         selectedProject,setProjects,
-         setSelectedProject,tasks,addTask,
-         moveTask,removeTask,addWorkspace,
-         addProject,loading}}>
-            {children}
-            </WorkspaceContext.Provider>
+    setTasks((prev) => [...prev, res.data.data]);
+  };
+
+  // Move task
+  const moveTask = async (taskId, newColumn) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task._id === taskId ? { ...task, column: newColumn } : task
+      )
     );
+
+    try {
+      await updateTask(taskId, { column: newColumn });
+    } catch {
+      const res = await getTasks(selectedProject._id);
+      setTasks(res.data.data);
+    }
+  };
+
+  // Delete task
+  const removeTask = async (taskId) => {
+    setTasks((prev) => prev.filter((task) => task._id !== taskId));
+
+    try {
+      await deleteTask(taskId);
+    } catch {
+      const res = await getTasks(selectedProject._id);
+      setTasks(res.data.data);
+    }
+  };
+
+  // Add workspace
+  const addWorkspace = async (name) => {
+    const res = await createWorkspace({ name });
+
+    setWorkspaces((prev) => [...prev, res.data.data]);
+    setSelectedWorkspace(res.data.data);
+  };
+
+  // Add project
+  const addProject = async (name) => {
+    const res = await createProject({
+      name,
+      workspaceId: selectedWorkspace._id,
+    });
+
+    setProjects((prev) => [...prev, res.data.data]);
+    setSelectedProject(res.data.data);
+  };
+
+  return (
+    <WorkspaceContext.Provider
+      value={{
+        workspaces,
+        selectedWorkspace,
+        setSelectedWorkspace,
+        projects,
+        setProjects,
+        selectedProject,
+        setSelectedProject,
+        tasks,
+        addTask,
+        moveTask,
+        removeTask,
+        addWorkspace,
+        addProject,
+        loading,
+      }}
+    >
+      {children}
+    </WorkspaceContext.Provider>
+  );
 };
 
 export const useWorkspace = () => useContext(WorkspaceContext);
