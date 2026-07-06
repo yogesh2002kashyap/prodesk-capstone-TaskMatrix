@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { suggestSubtasks } from '../../services/aiService';
 
 const COLUMNS = ['Backlog', 'In Progress', 'In Review', 'Done'];
 
@@ -12,6 +13,9 @@ export default function TaskModal({onClose}){
             column:'Backlog',
     });
     const [loading,setLoading] = useState(false);
+
+    const [suggestions, setSuggestions] = useState([]);
+    const [suggesting, setSuggesting] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -27,6 +31,21 @@ export default function TaskModal({onClose}){
             setLoading(false);
         }
     };
+
+    const handleSuggest = async () => {
+        if(!form.title.trim()) return;
+        setSuggesting(true);
+        try{
+            const subtasks = await suggestSubtasks(form.title);
+            setSuggestions(subtasks);
+        }catch(err){
+            console.error('AI suggestion failed', err);
+        }finally{
+            setSuggesting(false);
+        }
+    };
+
+    
 
     return (
         <div className='fixed inset-0 bg-brand-dark/30 flex items-center justify-center z-50'>
@@ -46,6 +65,24 @@ export default function TaskModal({onClose}){
                         placeholder='Task Title'
                         className='w-full border border-gray-100 rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400' />
                     </div>
+                    {form.title.trim().length > 2 && (
+                        <div>
+                            <button type='button' onClick={handleSuggest}
+                                    disabled={suggesting} 
+                                    className="text-xs text-blue-800 hover:underline disabled:opacity-50">
+                                {suggesting ? 'Generating...' : '✦ Suggest subtasks'}
+                            </button>
+                            {suggestions.length > 0 && (
+                                <ul className='mt-2 space-y-1'> 
+                                    {suggestions.map((s,i) => (
+                                        <li key={i} className="text-xs text-gray-800 bg-gray-50 rounded-md px-3 py-1.5 border border-gray-100">
+                                            {s}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
                     <div>
                         <label className="block text-xs text-gray-400 mb-1">Description</label>
                         <textarea 
