@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
+const errorHandler = require('./middleware/errorHandler');
 
 
 const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'PORT', 'CLIENT_URL', 'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID'];
@@ -74,6 +75,7 @@ app.use((err, req, res, next) => {
   });
 });
 
+app.use(errorHandler);
 
 if (process.env.NODE_ENV !== 'test') {
   mongoose
