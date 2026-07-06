@@ -9,7 +9,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const errorHandler = require('./middleware/errorHandler');
 
 
-const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'PORT', 'CLIENT_URL', 'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID'];
+const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'PORT', 'CLIENT_URL', 'STRIPE_SECRET_KEY', 'STRIPE_PRICE_ID', 'GEMINI_API_KEY'];
 if (process.env.NODE_ENV !== 'test') {
   const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
   if (missing.length) {
@@ -23,6 +23,7 @@ const workspaceRoutes = require('./routes/workspaces');
 const projectRoutes = require('./routes/projects');
 const taskRoutes = require('./routes/tasks');
 const stripeRoutes = require('./routes/stripe');
+const aiRoutes = require('./routes/ai');
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/ai', aiRoutes);
 
 
 app.get('/', (req, res) => {
