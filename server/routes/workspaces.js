@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authGuard = require('../middleware/authGuard');
 const { createWorkspace, getWorkspaces, updateWorkspace, deleteWorkspace} = require('../controllers/workspaceController');
-const validate = require('../middleware/validate');
+const {validate} = require('../middleware/validate');
 const { workspaceSchema } = require('../validators/schemas');
 
 router.post('/', authGuard, validate(workspaceSchema), createWorkspace);

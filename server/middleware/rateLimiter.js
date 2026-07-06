@@ -8,7 +8,7 @@ const authLimiter = rateLimit({
         message: 'Too many login attempts. Please try again in 15 minutes',
     },
     standardHeaders: true,
-    lagacyHeaders: false,
+    legacyHeaders: false,
 });
 
 const aiLimiter = rateLimit({
@@ -19,7 +19,7 @@ const aiLimiter = rateLimit({
         message: 'Too many AI requests. Please wait moment before trying again.',
     },
     standardHeaders: true,
-    lagacyHeaders: false,
+    legacyHeaders: false,
 });
 
 module.exports = { authLimiter, aiLimiter };
