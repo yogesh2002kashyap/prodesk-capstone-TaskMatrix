@@ -36,25 +36,10 @@ app.use(cors({
   credentials: true,
 }));
 
-
-if (process.env.NODE_ENV !== 'test') {
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { message: 'Too many requests, please try again later.' },
-  });
-  app.use('/api', limiter);
-}
-
-
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
-
 app.use(mongoSanitize());
-
 
 app.use('/api/auth', authRoutes);
 app.use('/api/workspaces', workspaceRoutes);
@@ -66,15 +51,6 @@ app.use('/api/ai', aiRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'TaskMatrix API running' });
-});
-
-
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  const status = err.status || err.statusCode || 500;
-  res.status(status).json({
-    message: err.message || 'Internal server error',
-  });
 });
 
 app.use(errorHandler);
