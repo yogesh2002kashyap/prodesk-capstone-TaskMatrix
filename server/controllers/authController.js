@@ -29,16 +29,16 @@ const register = async (req, res, next) => {
     const { name, email, password } = req.body;
 
     if (!name || !name.trim() || !email || !email.trim() || !password) {
-      return sendError(res, 400, 'Name, email, and password are required', errors);
+      return sendError(res, 400, 'Name, email, and password are required');
     }
 
     if (password.length < 8) {
-      return sendError(res, 400, 'Password must be at least 8 characters long', errors);
+      return sendError(res, 400, 'Password must be at least 8 characters long');
     }
 
     const existing = await User.findOne({ email });
     if (existing) {
-      return sendError(res, 400, 'Email already registered', errors);
+      return sendError(res, 400, 'Email already registered');
     }
 
     const user = new User({ name, email });
@@ -59,19 +59,19 @@ const login = async (req, res, next) => {
     const { email, password } = req.body;
 
     if (!email || !email.trim() || !password) {
-      return sendError(res, 400, 'Email and password are required', errors);
+      return sendError(res, 400, 'Email and password are required');
     }
 
     
     const user = await User.findOne({ email });
     if (!user) {
-      return sendError(res, 401,'Invalid email or password', errors);
+      return sendError(res, 401,'Invalid email or password');
     }
 
     
-    const isMatch = user.comparePassword(password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return sendError(res, 401,'Invalid email or password', errors);
+      return sendError(res, 401,'Invalid email or password');
     }
 
     const token = generateToken(user);
@@ -92,7 +92,7 @@ const logout = (req, res) => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
   });
-  sendSuccess(res, 200, 'Logged out');
+  return sendSuccess(res, 200, null, 'Logged out successfully');
 };
 
 module.exports = { register, login, logout };

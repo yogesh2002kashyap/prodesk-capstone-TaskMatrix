@@ -1,25 +1,35 @@
 const rateLimit = require('express-rate-limit');
+const { sendError } = require('../utils/apiError');
 
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 15 * 60 * 1000, // 15 minutes
     max: 10,
-    message: {
-        success: false,
-        message: 'Too many login attempts. Please try again in 15 minutes',
-    },
     standardHeaders: true,
     legacyHeaders: false,
+    handler: (req, res) => {
+        return sendError(
+            res,
+            429,
+            'Too many login attempts. Please try again in 15 minutes.'
+        );
+    },
 });
 
 const aiLimiter = rateLimit({
-    windowMs: 60 * 1000,
+    windowMs: 60 * 1000, // 1 minute
     max: 5,
-    message: {
-        success: false,
-        message: 'Too many AI requests. Please wait moment before trying again.',
-    },
     standardHeaders: true,
     legacyHeaders: false,
+    handler: (req, res) => {
+        return sendError(
+            res,
+            429,
+            'Too many AI requests. Please wait a moment before trying again.'
+        );
+    },
 });
 
-module.exports = { authLimiter, aiLimiter };
+module.exports = {
+    authLimiter,
+    aiLimiter,
+};

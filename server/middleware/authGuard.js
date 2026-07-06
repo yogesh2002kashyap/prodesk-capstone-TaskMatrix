@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
+const { sendError } = require('../utils/apiError');
 
 const authGuard = (req, res, next) => {
   const token = req.cookies?.tm_token;
 
   if (!token) {
-    return res.status(401).json({ message: 'No token provided' });
+    return sendError(res, 401, 'No authentication token provided');
   }
 
   try {
@@ -12,7 +13,7 @@ const authGuard = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Token invalid or expired' });
+    return sendError(res, 401, 'Token is invalid or has expired');
   }
 };
 

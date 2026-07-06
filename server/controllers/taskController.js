@@ -8,19 +8,19 @@ const createTask = async (req, res, next) => {
         const {title, description, priority, column, assignee, dueDate, projectId} = req.body;
 
         if (!title || !title.trim()) {
-            return sendError(res, 400, 'Task title is required', errors);
+            return sendError(res, 400, 'Task title is required');
         }
         if (!projectId) {
-            return sendError(res, 400, 'Project ID is required', errors);
+            return sendError(res, 400, 'Project ID is required');
         }
 
         const project = await Project.findById(projectId);
-        if(!project) { return res.status(404).json({message:'Project not found'});}
+        if(!project) { return sendError(res, 404, 'Project not found');}
 
         // Validate column against project's columns list
         const targetColumn = column || 'Backlog';
         if (!project.columns.includes(targetColumn)) {
-            return sendError(res, 400, `Invalid column. Must be one of: ${project.columns.join(', ')}`, errors);
+            return sendError(res, 400, `Invalid column. Must be one of: ${project.columns.join(', ')}`);
         }
 
         const task = await Task.create({
@@ -34,7 +34,7 @@ const createTask = async (req, res, next) => {
             createdBy: req.user.id,
         });
 
-        return sendSuccess(res, 201, task, 'Success');
+        return sendSuccess(res, 201, task, 'Task created successfully');
     }catch(err){
         next(err);}
 };
@@ -45,7 +45,7 @@ const getTasks = async (req, res, next) => {
         const {projectId} = req.query;
 
         if (!projectId) {
-            return sendError(res, 400, 'projectId query param is required', errors);
+            return sendError(res, 400, 'projectId query param is required');
         }
 
         const tasks = await Task.find({project:projectId})
@@ -53,7 +53,7 @@ const getTasks = async (req, res, next) => {
         .populate('createdBy', 'name email')
         .sort({createdAt: -1});
 
-        return sendSuccess(res, 200, tasks, 'Success');
+        return sendSuccess(res, 200, tasks, 'Tasks fetched successfully');
     }catch(err) {
         next(err);
     }
@@ -65,18 +65,18 @@ const updateTask = async (req, res, next) => {
         const task = await Task.findById(req.params.id);
 
         if(!task) {
-            return sendError(res, 404, 'Task not found', errors);
+            return sendError(res, 404, 'Task not found');
         }
 
         if(task.createdBy.toString() !== req.user.id) {
-            return sendError(res, 403, 'Forbidden - not the task creator', errors);
+            return sendError(res, 403, 'Forbidden - not the task creator');
         }
 
         
         if (req.body.column !== undefined) {
             const project = await Project.findById(task.project);
             if (project && !project.columns.includes(req.body.column)) {
-                return sendError(res, 400, `Invalid column. Must be one of: ${project.columns.join(', ')}`, errors);
+                return sendError(res, 400, `Invalid column. Must be one of: ${project.columns.join(', ')}`);
             }
         }
 
@@ -87,7 +87,7 @@ const updateTask = async (req, res, next) => {
 
         await task.save();
 
-        return sendSuccess(res, 200, task, 'Success');
+        return sendSuccess(res, 200, task, 'Task updated successfully');
     }catch(err) {
         next(err);
     }
@@ -99,15 +99,15 @@ const deleteTask = async (req, res, next) => {
         const task = await Task.findById(req.params.id);
 
         if(!task) {
-            return sendError(res, 404, 'Task not found', errors);
+            return sendError(res, 404, 'Task not found');
         }
 
         if(task.createdBy.toString() !== req.user.id) {
-            return sendError(res, 403, 'Forbidden - you are not the task creator', errors);
+            return sendError(res, 403, 'Forbidden - you are not the task creator');
         }
 
         await task.deleteOne();
-        return sendSuccess(res, 200, 'task deleted successfully');
+        return sendSuccess(res, 200, null, 'Task deleted successfully');
     }catch(err) {
         next(err);
     }

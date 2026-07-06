@@ -4,36 +4,57 @@ const { sendSuccess, sendError } = require('../utils/apiError');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const suggestSubtasks = async (req, res, next) => {
-    try{
-    const { teskTitle } = req.body;
+    try {
+        const { taskTitle } = req.body;
 
-    const model = getAI.getGenerativeModel({model: 'gemini-.5-flash'});
+        if (!taskTitle || !taskTitle.trim()) {
+            return sendError(res, 400, 'Task title is required');
+        }
 
-    const prompt = `You are a project management assistant for a software engineering team.
-    
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-1.5-flash',
+        });
+
+        const prompt = `You are a project management assistant for a software engineering team.
+
 Given this task title: "${taskTitle}"
 
-Generate exactly 5 clear, actionable subtasks that a developer would need to complete this task. 
+Generate exactly 5 clear, actionable subtasks that a developer would need to complete this task.
 
 Respond ONLY with a valid JSON array of strings. No explanation, no markdown, no extra text. Example format:
 ["Subtask 1", "Subtask 2", "Subtask 3", "Subtask 4", "Subtask 5"]`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+        const result = await model.generateContent(prompt);
+        const text = result.response.text().trim();
 
-    let subtasks;
-    try{
-        subtasks = JSON.parse(text);
-        if(!Array.isArray(subtasks)){
-            throw new Error('Not an Array');
+        let subtasks;
+
+        try {
+            subtasks = JSON.parse(text);
+
+            if (!Array.isArray(subtasks)) {
+                throw new Error('Not an array');
+            }
+
+            subtasks = subtasks
+                .filter(item => typeof item === 'string')
+                .slice(0, 5);
+        } catch {
+            return sendError(
+                res,
+                500,
+                'AI returned an unexpected response format'
+            );
         }
-        subtasks = subtasks.filter(item => typeof item === 'string').slice(0,5);
-    }catch(parseErr){
-        return sendError(res, 500, 'AI returned an unexpected response formate');
-    }
-    return sendSuccess(res, 200, { subtasks}, 'Subtasks generated');
-    } catch(err) {
-        next(err);  
+
+        return sendSuccess(
+            res,
+            200,
+            { subtasks },
+            'Subtasks generated successfully'
+        );
+    } catch (err) {
+        next(err);
     }
 };
 

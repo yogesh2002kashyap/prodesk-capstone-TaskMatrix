@@ -4,10 +4,10 @@ const { sendSuccess, sendError } = require('../utils/apiError');
 //POST /api/stripe/create-checkout-session
 const createCheckoutSession = async (req, res, next) => {
     if (!process.env.STRIPE_SECRET_KEY) {
-        return res.status(500).json({ message: 'Stripe API key is not configured' });
+        return sendError(res, 500, 'Stripe API key is not configured');
     }
     if (!process.env.STRIPE_PRICE_ID) {
-        return res.status(500).json({ message: 'Stripe price ID is not configured' });
+        return sendError(res, 500, 'Stripe price ID is not configured');
     }
 
     try{
@@ -24,7 +24,7 @@ const createCheckoutSession = async (req, res, next) => {
             cancel_url: `${process.env.CLIENT_URL}/board`,
             customer_email: req.user?.email || undefined,
         });
-        return sendSuccess(res, 200, {url:session.url}, 'Success');
+        return sendSuccess(res, 200, {url:session.url}, 'Checkout session created successfully');
     } catch (err){
         next(err);
     }
@@ -33,7 +33,7 @@ const createCheckoutSession = async (req, res, next) => {
 //GET /api/stripe/session/:sessionId
 const getSession = async (req, res, next) => {
     if (!process.env.STRIPE_SECRET_KEY) {
-        return res.status(500).json({ message: 'Stripe API key is not configured' });
+        return sendError(res, 500, 'Stripe API key is not configured');
     }
 
     try{
@@ -42,7 +42,7 @@ const getSession = async (req, res, next) => {
             status:session.payment_status,
             customerEmail: session.customer_details?.email,
             plan:'pro',
-        }, 'Success');
+        }, 'Checkout session retrieved successfully');
     }catch(err) {
         next(err);
     }
