@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const authGuard = require('../middleware/authGuard');
+
 const {
     createCheckoutSession,
     getSession,
@@ -9,11 +9,10 @@ const {
 const { validateParams } = require('../middleware/validate');
 const { sessionParamSchema } = require('../validators/schemas');
 
-router.post('/create-checkout-session', authGuard, createCheckoutSession);
+router.post('/create-checkout-session',  createCheckoutSession);
 
 router.get(
     '/session/:sessionId',
-    authGuard,
     validateParams(sessionParamSchema),
     getSession
 );
