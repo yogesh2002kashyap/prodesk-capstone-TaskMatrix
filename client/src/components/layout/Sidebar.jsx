@@ -14,12 +14,13 @@ export default function Sidebar(){
     } = useWorkspace();
 
     const [upgrading, setUpgrading] = useState(false);
+    const [upgradeError, setUpgradeError] = useState('');
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
     const [newProjectName, setNewProjectName] = useState('');
     const [showWSInput, setShowWSInput] = useState(false);
     const [showProjInput, setShowProjInput] = useState(false);
 
-    const isPro = localStorage.getItem('tm_pro') === 'true';
+    const isPro = user?.isPro === true;
 
     const navItems = [
         {label:'Board', path:'/board'},
@@ -44,11 +45,12 @@ export default function Sidebar(){
 
     const handleUpgrade = async () => {
         setUpgrading(true);
+        setUpgradeError('');
         try{
             const url = await createCheckoutSession();
             window.location.href = url; 
         }catch(err){
-            console.error('Checkout failed', err);
+            setUpgradeError('Payment setup failed. Please try again.');
             setUpgrading(false);
         }
     }
@@ -77,7 +79,7 @@ export default function Sidebar(){
                 </select>
                 </div>
 
-                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest px-2 mt-2 mb-2"> 
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest px-2 mt-2 mb-1"> 
                     Workspace
                 </p>
 
@@ -87,7 +89,7 @@ export default function Sidebar(){
                 ))
                 }
 
-                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest px-2 mt-4 mb-1">
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest px-2 mt-3 mb-1">
                     Projects
                 </p>
 
@@ -147,6 +149,11 @@ export default function Sidebar(){
                 >
                   {upgrading ? 'Redirecting...' : '⚡ Upgrade to Pro'}
                 </button>
+              )}
+              {upgradeError && (
+                <p className="text-[10px] text-red-800 text-center mt-1 px-1">
+                  {upgradeError}
+                </p>
               )}
             </div>
 

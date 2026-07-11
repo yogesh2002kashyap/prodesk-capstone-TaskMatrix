@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     await api.post('/auth/logout')
     localStorage.removeItem('tm_user');
-    localStorage.removeItem('tm_pro');
     setUser(null);
     navigate('/auth');
   };

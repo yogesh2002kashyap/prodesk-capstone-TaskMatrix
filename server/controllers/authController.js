@@ -47,7 +47,7 @@ const register = async (req, res, next) => {
 
     const token = generateToken(user);
     setCookieToken(res, token);
-    return sendSuccess(res, 200, {user: { id: user._id, name: user.name, email: user.email, role: user.role }}, 'Registered successfully');
+    return sendSuccess(res, 200, {user: { id: user._id, name: user.name, email: user.email, role: user.role, isPro: user.isPro }}, 'Registered successfully');
   } catch (err) {
     next(err);
   }
@@ -78,7 +78,7 @@ const login = async (req, res, next) => {
     setCookieToken(res, token);
     return sendSuccess(res, 200, {
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, isPro: user.isPro },
     }, 'Login successfully' );
   } catch (err) {
     next(err);

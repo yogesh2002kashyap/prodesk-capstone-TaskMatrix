@@ -1,4 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const User = require('../models/User');
 const { sendSuccess, sendError } = require('../utils/apiError');
 
 //POST /api/stripe/create-checkout-session
@@ -38,11 +39,16 @@ const getSession = async (req, res, next) => {
 
     try{
         const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+
+        if (session.payment_status === 'paid' && req.user?.id) {
+            await User.findByIdAndUpdate(req.user.id, { isPro: true });
+        }
+
         return sendSuccess(res, 200, {
             status:session.payment_status,
             customerEmail: session.customer_details?.email,
-            plan:'pro',
-        }, 'Checkout session retrieved successfully');
+            plan:'Pro',
+        }, 'Session retrieved');
     }catch(err) {
         next(err);
     }
