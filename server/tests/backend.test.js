@@ -7,6 +7,8 @@
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_jwt_secret_32chars_minimum!!';
 process.env.CLIENT_URL = 'http://localhost:5173';
+process.env.STRIPE_SECRET_KEY = 'sk_test_123';
+process.env.STRIPE_PRICE_ID = 'price_test_123';
 
 const request = require('supertest');
 const app = require('../index');
@@ -159,6 +161,18 @@ describe('AUTH — /api/auth', () => {
         .set('Cookie', 'tm_token=totallyFakeToken');
       expect(res.status).toBe(401);
     });
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STRIPE
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('STRIPE — /api/stripe', () => {
+  it('requires authentication for checkout session creation', async () => {
+    const res = await request(app).post('/api/stripe/create-checkout-session');
+    expect(res.status).toBe(401);
+    expect(res.body.message).toMatch(/authentication token/i);
   });
 });
 

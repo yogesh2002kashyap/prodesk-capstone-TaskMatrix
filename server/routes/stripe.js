@@ -7,7 +7,7 @@ const {
     getSession,
 } = require('../controllers/stripeController');
 
-router.post('/create-checkout-session',  createCheckoutSession);
+router.post('/create-checkout-session', authGuard, createCheckoutSession);
 
 router.get(
     '/session/:sessionId',
