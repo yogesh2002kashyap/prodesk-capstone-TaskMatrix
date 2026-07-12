@@ -297,3 +297,111 @@ A few patterns applied consistently across both sprints:
 **Separating symptoms from causes.** Multiple times in this sprint, a surface symptom (500 error, app not loading, infinite reload) masked a different root cause (missing npm package, syntax error in an unrelated file, missing vercel.json). The consistent pattern was: read the exact error message → identify the layer it came from (build, runtime, network, browser) → fix that specific layer before assuming the problem is elsewhere.
 
 **Testing environment parity.** Several bugs only appeared in production (Render env vars missing, Vercel domain alias detached, CORS credential mismatch) because local dev uses .env files that don't exist on the server. The fix was treating Render's Environment tab as the equivalent of .env — every variable that exists locally must also exist there explicitly.
+
+---
+
+## SPRINT 4 — AI Endpoint Architecture & Backend Hardening (Week 4)
+
+---
+
+## 23. Zod Validation Architecture — Schema Design and Middleware Factory
+
+**Intent:** The assignment required strict payload validation on all endpoints. Before writing any schema, I asked for an architecture that would apply validation consistently across all routes without repeating code in every controller.
+
+**Prompt used:**
+> *(Reviewed Sprint 4 roadmap and asked about validation architecture for all routes including Stripe)*
+> "Are not there any validation for stripe routes."
+> "Why you have require validate in stripe.js"
+
+**Outcome:** The AI designed a `validate()` middleware factory using Zod's `safeParse` (not `parse`) so validation errors are handled gracefully rather than thrown. A separate `validateParams()` factory was created for route parameter validation (used on the Stripe session retrieval route). The AI also caught a copy-paste error where `updateProject` was being validated against `workspaceSchema` instead of a dedicated `updateProjectSchema` — and identified that importing `validate` into `stripe.js` was dead code since the Stripe routes validate params not body. Both corrections were applied before any route code was written.
+
+---
+
+## 24. Centralised Error Handling — next(err) Pattern
+
+**Intent:** Before refactoring all controllers to use `next(err)`, I asked how the pattern actually works so I could implement it correctly and explain it during viva.
+
+**Prompt used:**
+> "In step 8 how does next(err) works"
+
+**Outcome:** The AI explained the full Express middleware chain: `next()` with no argument passes to the next normal middleware, `next(err)` skips all normal middleware and jumps directly to the first four-argument middleware `(err, req, res, next)`. It explained why placement of `errorHandler` as the last `app.use()` is mandatory, why every controller must declare `next` as a third parameter before using it, and how the centralised handler detects error types (ZodError, Mongoose duplicate key, TokenExpiredError) to return appropriate HTTP status codes. This prevented the common mistake of calling `next(err)` without declaring `next` in the function signature.
+
+---
+
+## 25. Google Gemini AI Microservice — Server-Side SDK Integration
+
+**Intent:** The assignment explicitly required that LLM SDK calls must never execute from the React client. I needed to understand the correct server-side integration pattern and wire it into the frontend task creation flow.
+
+**Prompt used:**
+> *(Followed Sprint 4 roadmap for Gemini integration — POST /api/ai/suggest endpoint)*
+
+**Outcome:** The AI microservice was architected with a dedicated route, Zod-validated `taskTitle` input (minimum 3 characters), a structured prompt engineering approach instructing Gemini to return only a valid JSON array of 5 strings, and response sanitisation that validates the parsed output is an array before returning it to the client. The frontend `aiService.js` calls the backend endpoint — the `GEMINI_API_KEY` never appears in any frontend file or Vercel environment variable. The "Suggest subtasks" button in TaskModal only renders when the title exceeds 2 characters, preventing unnecessary API calls.
+
+---
+
+## 26. Production Log Sweep — console.log vs console.info
+
+**Intent:** The assignment required stripping all console.log statements from the production backend. After running the grep sweep, two startup logs remained in index.js.
+
+**Prompt used:**
+> "Final step output is: server/index.js:86: console.log('MongoDB connected') server/index.js:88: console.log('Server running on port')"
+
+**Outcome:** The AI clarified that startup confirmation logs are standard production practice and should not be removed — they provide essential visibility in Render's deployment logs to confirm MongoDB connected and the server started. The correct fix was converting them to `console.info` (signalling intentional informational output rather than forgotten debug logs) so a future grep for `console.log` returns zero results while preserving the startup visibility. This distinction — debug logs vs operational logs — is a real engineering judgment that the assignment's blanket "strip all console.log" instruction didn't account for.
+
+---
+
+## SPRINT 5 — Production Deployment & Stripe Debugging (Week 5)
+
+---
+
+## 27. Persistent Stripe Redirect Bug — Multi-Layer Root Cause Analysis
+
+**Intent:** The "Upgrade to Pro" button persistently redirected to /auth across multiple debug rounds. Each round fixed one layer but revealed another underneath. I asked for increasingly precise debugging prompts as each layer was eliminated.
+
+**Prompts used (sequence):**
+> "The Stripe payment upgrade to Pro button still redirects to the auth page. So, act as a senior software developer, try to find out the root cause and write a prompt for debugging."
+> *(After first agent run confirmed all code clean)* — NODE_ENV=production added to Render
+> *(Bug persisted)* — Network tab screenshot showing request URL as /undefined
+> *(Bug persisted after VITE_API_URL fix)* — Network tab showing 200 on POST but /undefined still firing
+
+**Outcome:** Three completely separate bugs were disguised as the same symptom across three debug rounds:
+
+Bug 1 — `VITE_API_URL` was undefined in the production Vite bundle. The Axios `baseURL` was `undefined`, so `api.post('/stripe/create-checkout-session')` resolved to `undefined/stripe/...`, which failed silently, and `window.location.href = undefined` navigated to `/undefined` on Vercel, which React Router redirected to `/auth`. Fixed by confirming `VITE_API_URL` on Vercel and redeploying to bake the variable into the bundle.
+
+Bug 2 — `NODE_ENV` was not set on Render. The `setCookieToken` function evaluated `secure: false` and `sameSite: 'strict'`, causing the browser to drop the httpOnly cookie on all cross-origin requests. Every protected endpoint returned 401. The Axios interceptor redirected to `/auth`. Fixed by adding `NODE_ENV=production` to Render and requiring the user to log out and back in to receive a new cookie with correct flags.
+
+Bug 3 — The `sendSuccess()` wrapper added in Sprint 4 wrapped all response bodies in a `data` envelope (`{ success, message, data: { url } }`). `stripeService.js` was reading `r.data.url` but the URL was now at `r.data.data.url`. The POST returned 200 but `url` was `undefined`, causing `window.location.href = undefined` again — identical symptom to Bug 1. Fixed by changing `r.data.url` to `r.data.data.url` in `createCheckoutSession` and `res.data` to `res.data.data` in `getCheckoutSession`.
+
+---
+
+## 28. Network Tab as the Primary Debugging Tool
+
+**Intent:** Each round of Stripe debugging was resolved faster once the network tab was used as the primary evidence source rather than code inspection alone.
+
+**Prompt used:**
+> *(Shared network tab screenshot showing GET /undefined with 200 status going to Vercel)*
+> *(Shared network tab screenshot showing POST /create-checkout-session returning 200 alongside GET /undefined)*
+
+**Outcome:** The network tab screenshots provided definitive evidence that eliminated entire categories of possible causes in seconds. The first screenshot (GET /undefined to Vercel) proved the request never left the frontend — eliminating all CORS, cookie, and backend hypotheses in one observation. The second screenshot (POST 200 alongside GET /undefined) proved the backend was working correctly and the URL was being lost in the frontend return value chain — eliminating all server-side hypotheses. This pattern — screenshot the network tab first, read the exact request URL and status code, then form a hypothesis — is now the established debugging workflow for all production API issues.
+
+---
+
+## 29. Mentor Feedback Integration — isPro Security and Error Handling
+
+**Intent:** Two consecutive sprint reviews flagged localStorage-based Pro status as a security vulnerability and basic console.error as inadequate error handling. I asked for fixes that addressed both concerns.
+
+**Prompt used:**
+> *(Shared mentor feedback)* "Kindly ensure you fetch the Pro subscription status directly from the backend API instead of relying solely on localStorage, which can be easily manipulated."
+> "Write a prompt for agent to fix 2, 3, and 4 issue."
+
+**Outcome:** The isPro flag was moved from localStorage to the MongoDB User model as a persistent boolean field. The Stripe `getSession` controller now updates `User.isPro = true` via `findByIdAndUpdate` when `payment_status === 'paid'`, and `authGuard` was added to the GET session route so `req.user` is available for the update. The auth controller was updated to include `isPro` in both register and login responses, propagating through `localStorage.setItem('tm_user', ...)` automatically. The Sidebar reads `user?.isPro` from `useAuth()` instead of localStorage. Payment error handling was upgraded from `console.error` to a visible `upgradeError` state rendered below the upgrade button. All three changes were applied via a single agentic prompt with explicit before/after diffs and verification steps.
+
+---
+
+## Reflections — Sprint 4 and 5 additions
+
+**Reading network tab before reading code.** The Stripe debugging saga established a clear rule: when a production bug involves an API call, open the network tab first and read the exact request URL, status code, and response body before looking at any code. Three rounds of code inspection found nothing wrong — one network tab screenshot immediately showed the request URL was `/undefined`, which is not a code pattern issue but a runtime value issue.
+
+**API response shape changes propagate silently.** Adding `sendSuccess()` in Sprint 4 changed every API response's shape from `{ url }` to `{ data: { url } }`. Services that destructured the response directly (`r.data.url`) broke silently — no type error, no console error, just `undefined`. This class of bug — shape drift between API producer and consumer — requires either TypeScript types shared between layers, or explicit contract tests that assert response shapes. Neither was in place, which is why it took three debug rounds to find.
+
+**Agentic prompts need constraint specificity proportional to change risk.** The Fix 2/3/4 agentic prompt was the most constrained prompt written across the entire project — it specified exact file paths, exact line content before and after, and explicit "do not touch" lists for every file. This was necessary because the isPro refactor touched six files across both frontend and backend, with a risk of breaking the auth chain if any step was applied out of order or incompletely.
