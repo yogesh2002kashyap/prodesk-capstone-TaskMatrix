@@ -53,6 +53,10 @@ app.use(
 
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
+
+const morgan = require('morgan');
+app.use(morgan('dev'));
+
 app.use(mongoSanitize());
 
 // Routes
