@@ -28,8 +28,9 @@ export default function KanbanColumn({ column, tasks, onMove, onDelete, onAddTas
       ))}
 
       {tasks.length === 0 && (
-        <div className='border border-dashed border-gray-100 rounded-md p-4 text-center'>
-          <p className='text-[10px] text-gray-400'>No tasks</p>
+        <div className='border border-dashed border-gray-100 rounded-md py-8 px-4 text-center flex flex-col items-center gap-2'>
+          <p className='text-xs text-gray-400 font-medium'>No tasks yet</p>
+          <p className='text-[10px] text-gray-300'>Click + Add task to get started</p>
         </div>
       )}
 

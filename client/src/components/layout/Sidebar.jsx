@@ -49,7 +49,7 @@ export default function Sidebar(){
         try{
             const url = await createCheckoutSession();
             window.location.href = url; 
-        }catch(err){
+        }catch{
             setUpgradeError('Payment setup failed. Please try again.');
             setUpgrading(false);
         }
@@ -66,8 +66,8 @@ export default function Sidebar(){
             </div>
 
             <div className="flex flex-col flex-1 overflow-y-auto px-2 py-3 gap-1">
-                <div className="px-2 mb-1">
-                <select className="w-full text-xs text-gray-800 bg-gray-50 border border-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                <div className="px-2 mb-2">
+                <select className="w-full text-xs text-gray-800 bg-gray-50 border border-gray-100 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
                     value={selectedWorkspace?._id || ''}
                     onChange={(e) => {
                         const ws = workspaces.find((w) => w._id === e.target.value);
